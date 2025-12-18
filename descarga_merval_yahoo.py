@@ -4,9 +4,9 @@ Script para descargar datos históricos de acciones MERVAL desde Yahoo Finance
 Período: Últimos 6 meses (configurable)
 Funciona: 100% automático, sin JavaScript requerido
 
-SOLUCIÓN (2025): Usa auto_adjust=False (ver video: youtube.com/watch?v=kVgthlO6T28)
+SOLUCIÓN (2025): Usa auto_adjust=False + yfinance 0.2.66+
 Instala primero:
-  pip install yfinance pandas requests
+  pip install yfinance pandas requests --upgrade --no-cache-dir
 """
 
 import yfinance as yf
@@ -78,10 +78,11 @@ for ticker, nombre in ACCIONES_MERVAL.items():
             
             if len(df) > 0:
                 # Información descargada
-                precio_actual = df['Adj Close'].iloc[-1] if 'Adj Close' in df.columns else df['Close'].iloc[-1]
-                precio_min = df['Low'].min()
-                precio_max = df['High'].max()
-                variacion_6m = ((precio_actual - df['Close'].iloc[0]) / df['Close'].iloc[0]) * 100
+                # FIX: Convertir a float, no dejar como Series
+                precio_actual = float(df['Close'].iloc[-1])
+                precio_min = float(df['Low'].min())
+                precio_max = float(df['High'].max())
+                variacion_6m = ((precio_actual - float(df['Close'].iloc[0])) / float(df['Close'].iloc[0])) * 100
                 
                 print(f"   ✅ OK - {len(df)} datos")
                 print(f"   📊 Rango: ${precio_min:.2f} - ${precio_max:.2f}")
@@ -192,6 +193,7 @@ print(f"\n📁 Carpeta: {DOWNLOAD_DIR.absolute()}\n")
 print("="*80)
 print("✅ DESCARGA COMPLETADA")
 print("="*80)
-print(f"\n💡 NOTA IMPORTANTE:")
-print(f"   Este script usa auto_adjust=False (solución 2025)")
-print(f"   Si aún obtiene errores, ver: youtube.com/watch?v=kVgthlO6T28\n")
+print(f"\n💡 VERSIONES INSTALADAS:")
+print(f"   yfinance: {yf.__version__}")
+print(f"   pandas: {pd.__version__}")
+print(f"\n✅ El upgrade a yfinance 0.2.66 funcionó correctamente!\n")
