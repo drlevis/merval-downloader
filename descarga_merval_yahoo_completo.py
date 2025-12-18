@@ -7,7 +7,9 @@ Incluyendo:
   - Ratios financieros
   - Exporta a CSVs limpios
 
-Función: Perfecto para sistemas de trading automático
+NOTA: Solo USA TICKERS .BA (Buenos Aires)
+NO incluye ADRs (ej: GGAL sin .BA es ADR USA)
+
 Instala primero:
   pip install yfinance pandas requests --upgrade --no-cache-dir
 """
@@ -25,7 +27,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore')
 
 print("="*80)
-print("📥 DESCARGADOR MERVAL COMPLETO - YAHOO FINANCE")
+print("📥 DESCARGADOR MERVAL COMPLETO - SOLO TICKERS .BA")
 print("="*80 + "\n")
 
 # Período: últimos 5 años
@@ -34,20 +36,42 @@ fecha_inicio = fecha_fin - timedelta(days=365*5)
 
 print(f"📅 Período: {fecha_inicio.strftime('%Y-%m-%d')} a {fecha_fin.strftime('%Y-%m-%d')}\n")
 
-# Acciones MERVAL
+# ACCIONES MERVAL - SOLO .BA (Buenos Aires, no ADRs USA)
 ACCIONES_MERVAL = {
-    "GGAL": "Grupo Galicia (ADR USA)",
-    "BMA": "Banco Macro (ADR USA)",
-    "LOMA": "Loma Negra (ADR USA)",
-    "CEPU": "Central Puerto (ADR USA)",
-    "EDN": "Edenor (ADR USA)",
-    "SUPV": "Grupo Supervielle (ADR USA)",
-    "BBAR": "BBVA Argentina (ADR USA)",
-    "AGRO": "Adecoagro (ADR USA)",
-    "YPFD.BA": "YPF (Buenos Aires)",
-    "PAMP.BA": "Pampa Energía (Buenos Aires)",
-    "ALUA.BA": "Aluar (Buenos Aires)",
+    # BANCOS
+    "GGAL.BA": "Grupo Financiero Galicia",
+    "BBAR.BA": "BBVA Banco Francés",
+    "VALO.BA": "Banco de Valores",
+    "BMA.BA": "Banco Macro",
+    
+    # ENERGÍA
+    "YPFD.BA": "YPF",
+    "PAMP.BA": "Pampa Energía",
+    "EDN.BA": "Edenor",
+    "TGNO4.BA": "Transportista Gas del Norte",
+    "TGSU2.BA": "Transportista Gas del Sur",
+    
+    # UTILITIES
+    "TRAN.BA": "Transener",
+    "METR.BA": "Metrogas",
+    "TECO2.BA": "Telecom Argentina",
+    
+    # COMERCIO
+    "BYMA.BA": "Bolsas y Mercados Argentinos",
+    "CEPU.BA": "Central Puerto",
+    
+    # MATERIALES
+    "TXAR.BA": "Ternium Argentina",
+    "ALUA.BA": "Aluar (Aluminio Argentino)",
+    "LOMA.BA": "Loma Negra",
+    
+    # AGRONEGOCIOS
+    "AGRO.BA": "Adecoagro",
+    "SUPV.BA": "Grupo Supervielle",
 }
+
+print(f"Total de acciones: {len(ACCIONES_MERVAL)}")
+print("🌟 Solo tickers .BA (Buenos Aires) - NO incluye ADRs USA\n")
 
 # Crear carpetas
 DATA_DIR = Path("MERVAL_Datos_Limpio")
@@ -243,4 +267,5 @@ print(f"   Período: 5 años ({(fecha_fin - fecha_inicio).days} días)")
 print(f"   yfinance: {yf.__version__}")
 print(f"   pandas: {pd.__version__}")
 print(f"\n✅ CSVs LIMPIOS - Sin duplicados, sin encabezados extra!")
-print(f"✅ Ratios Fundamentales disponibles para análisis!\n")
+print(f"✅ Ratios Fundamentales disponibles para análisis!")
+print(f"✅ Solo TICKERS .BA (Buenos Aires) - 100% MERVAL!\n")
