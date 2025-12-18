@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""
-Script COMPLETO para descargar datos MERVAL desde Yahoo Finance
+"""  
+Script COMPLETO para descargar datos de TODAS las acciones argentinas .BA
 
-LISTA OFICIAL: 20 acciones desde IOL (Invertir Online)
-Sin duplicados (sin tickers terminados en D)
+LISTA COMPLETA: 64 acciones .BA
+  • 19 del MERVAL principal
+  • 45 adicionales de IOL/BCBA
 
-Fuente: https://iol.invertironline.com/
-Fecha: 2025-12-18
+Fuentes:
+  • Yahoo Finance
+  • InvertirOnline (IOL)
+  • Bolsa de Comercio de Buenos Aires (BCBA)
 
 Instala primero:
-  pip install yfinance==0.2.38 pandas --upgrade
+  pip install yfinance pandas requests --upgrade --no-cache-dir
 """
 
 import yfinance as yf
@@ -20,46 +23,92 @@ import sys
 from pathlib import Path
 import warnings
 
-# Silenciar warnings
 warnings.filterwarnings('ignore')
 
 print("="*80)
-print("📥 DESCARGADOR MERVAL - LISTA OFICIAL IOL")
+print("📥 DESCARGADOR COMPLETO - TODAS LAS ACCIONES .BA")
 print("="*80 + "\n")
 
-# Período: últimos 5 años
 fecha_fin = datetime.now()
 fecha_inicio = fecha_fin - timedelta(days=365*5)
 
 print(f"📅 Período: {fecha_inicio.strftime('%Y-%m-%d')} a {fecha_fin.strftime('%Y-%m-%d')}\n")
 
-# LISTA OFICIAL DE 20 ACCIONES MERVAL (desde IOL)
-ACCIONES_MERVAL = {
-    "ALUA": "Aluar",
-    "BBAR": "BBVA",
-    "BMA": "Banco Macro",
-    "BYMA": "Bolsas y Mercados Argentinos",
-    "CEPU": "Central Puerto",
-    "COME": "Sociedad Comercial del Plata",
-    "CRES": "Cresud",
-    "EDN": "Edenor",
-    "GGAL": "Grupo Financiero Galicia",
-    "LOMA": "Loma Negra",
-    "METR": "Metrogas",
-    "PAMP": "Pampa Energía",
-    "SUPV": "Grupo Supervielle",
-    "TECO2": "Telecom Argentina",
-    "TGNO4": "Transportadora Gas del Norte",
-    "TGSU2": "Transportadora Gas del Sur",
-    "TRAN": "Transener",
-    "TXAR": "Ternium Argentina",
-    "VALO": "Banco de Valores",
-    "YPFD": "YPF",
+# LISTA COMPLETA: 64 ACCIONES .BA
+ACCIONES_BA = {
+    # MERVAL PRINCIPAL (19)
+    "GGAL.BA": "Grupo Financiero Galicia",
+    "BMA.BA": "Banco Macro",
+    "BBAR.BA": "Banco BBVA Argentina",
+    "VALO.BA": "Banco de Valores",
+    "YPFD.BA": "YPF",
+    "PAMP.BA": "Pampa Energía",
+    "EDN.BA": "Edenor",
+    "TGNO4.BA": "Transportadora Gas del Norte",
+    "TGSU2.BA": "Transportadora Gas del Sur",
+    "CEPU.BA": "Central Puerto",
+    "TRAN.BA": "Transener",
+    "METR.BA": "Metrogas",
+    "TECO2.BA": "Telecom Argentina",
+    "ALUA.BA": "Aluar",
+    "TXAR.BA": "Ternium Argentina",
+    "LOMA.BA": "Loma Negra",
+    "CELU.BA": "Celulosa Argentina",
+    "BYMA.BA": "Bolsas y Mercados Argentinos",
+    "COME.BA": "Sociedad Comercial del Plata",
+    
+    # ADICIONALES IOL/BCBA (45)
+    "A3.BA": "Matba Rofex S.A.",
+    "AGRO.BA": "Agrometal",
+    "AUSO.BA": "Autopistas del Sol",
+    "BHIP.BA": "Banco Hipotecario",
+    "BOLT.BA": "Boldt",
+    "BPAT.BA": "Banco Patagonia",
+    "CADO.BA": "Carlos Casado",
+    "CAPX.BA": "Capex",
+    "CARC.BA": "Carboclor S.A.",
+    "CECO2.BA": "Endesa Costanera",
+    "CGPA2.BA": "Camuzzi Gas Pampeana",
+    "CTIO.BA": "Consultatio",
+    "CVH.BA": "Cablevisión Holding",
+    "DGCU2.BA": "Distribuidora de Gas Cuyana",
+    "DOME.BA": "Suscripción Preferente",
+    "FERR.BA": "Ferrum",
+    "FIPL.BA": "Fiplasto",
+    "GAMI.BA": "B-Gaming S.A.",
+    "GARO.BA": "Garovaglio y Zorraquin",
+    "GBAN.BA": "Gas Natural BAN",
+    "GCDI.BA": "Gcdi S.A.",
+    "GCLA.BA": "Grupo Clarín",
+    "GRIM.BA": "Grimoldi",
+    "HARG.BA": "Holcim Argentina",
+    "HAVA.BA": "Havanna Holding",
+    "IEB.BA": "Dycasa",
+    "INTR.BA": "Compania Introductora",
+    "INVJ.BA": "Inversora Juramento",
+    "IRSA.BA": "Irsa",
+    "LEDE.BA": "Ledesma",
+    "LONG.BA": "Longvie",
+    "MERA.BA": "MERANOL S.A.C.I.",
+    "MIRG.BA": "Mirgor",
+    "MOLA.BA": "Molinos Agro S.A.",
+    "MOLI.BA": "Molinos Río De La Plata",
+    "MORI.BA": "Morixe Hermanos",
+    "OEST.BA": "Grupo Concesionario Oeste",
+    "PATA.BA": "Imp. y Exportadora de la Patagonia",
+    "PGR.BA": "Phoenix Global Resources",
+    "POLL.BA": "Polledo",
+    "RICH.BA": "Laboratorios Richmond",
+    "RIGO.BA": "Rigolleau",
+    "ROSE.BA": "Instituto Rosenbusch",
+    "SAMI.BA": "San Miguel",
+    "SEMI.BA": "Molinos Juan Semino",
 }
 
-print(f"✅ Acciones oficiales IOL: {len(ACCIONES_MERVAL)}\n")
+print(f"✅ Total acciones: {len(ACCIONES_BA)}")
+print(f"   • 19 MERVAL principal")
+print(f"   • 45 adicionales IOL/BCBA\n")
 
-# Crear carpetas
 DATA_DIR = Path("MERVAL_Datos_Limpio")
 FUND_DIR = Path("MERVAL_Fundamentales")
 DATA_DIR.mkdir(exist_ok=True)
@@ -74,11 +123,10 @@ print("="*80 + "\n")
 resultados = []
 fundamentales_list = []
 
-for ticker, nombre in ACCIONES_MERVAL.items():
-    print(f"⏳ {ticker:15} ({nombre})")
+for ticker, nombre in ACCIONES_BA.items():
+    print(f"⏳ {ticker:15} ({nombre[:40]})")
     
     try:
-        # 1. DESCARGAR DATOS HISTÓRICOS
         df_precios = yf.download(
             ticker,
             start=fecha_inicio.strftime('%Y-%m-%d'),
@@ -89,33 +137,22 @@ for ticker, nombre in ACCIONES_MERVAL.items():
         )
         
         if df_precios is None or len(df_precios) == 0:
-            print(f"   ⚠️  Sin datos históricos\n")
-            resultados.append({
-                'Ticker': ticker,
-                'Nombre': nombre,
-                'Status': '❌ Sin datos',
-                'Datos': 0,
-                'Archivo': '-'
-            })
+            print(f"   ⚠️  Sin datos\n")
+            resultados.append({'Ticker': ticker, 'Nombre': nombre, 'Status': '❌ Sin datos', 'Datos': 0, 'Archivo': '-'})
             continue
         
         # LIMPIAR CSV
         df_precios = df_precios.reset_index()
-        
         if 'Date' in df_precios.columns:
             df_precios.rename(columns={'Date': 'fecha'}, inplace=True)
         
-        # Reordenar OHLCV
         df_precios = df_precios[['fecha', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
         
-        # Convertir a numérico (fix para yfinance 0.2.66)
+        # Convertir a numérico
         for col in ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']:
             df_precios[col] = df_precios[col].apply(lambda x: pd.to_numeric(x, errors='coerce'))
         
-        # Eliminar NaN
         df_precios = df_precios.dropna()
-        
-        # Formatear fecha
         df_precios['fecha'] = pd.to_datetime(df_precios['fecha'])
         df_precios['fecha'] = df_precios['fecha'].dt.strftime('%Y-%m-%d')
         
@@ -123,15 +160,15 @@ for ticker, nombre in ACCIONES_MERVAL.items():
             print(f"   ⚠️  Sin datos después de limpiar\n")
             continue
         
-        # Guardar CSV LIMPIO
-        filename_precios = f"{ticker}_precios_5A.csv"
+        # Guardar CSV
+        filename_precios = f"{ticker.replace('.BA', '')}_precios_5A.csv"
         filepath_precios = DATA_DIR / filename_precios
         df_precios.to_csv(filepath_precios, index=False, float_format='%.8f')
         
         print(f"   ✅ Datos: {len(df_precios)} registros")
         print(f"   💾 Guardado: {filename_precios}")
         
-        # 2. OBTENER FUNDAMENTALES
+        # FUNDAMENTALES
         try:
             ticker_obj = yf.Ticker(ticker)
             info = ticker_obj.info
@@ -155,73 +192,40 @@ for ticker, nombre in ACCIONES_MERVAL.items():
             }
             
             fundamentales_list.append(fundamentales)
-            print(f"   📊 P/E: {fundamentales['P/E Ratio (Trailing)']}")
-            print(f"   💲 Div Yield: {fundamentales['Dividend Yield']}\n")
+            print(f"   📊 P/E: {fundamentales['P/E Ratio (Trailing)']}\n")
             
         except Exception as e:
-            print(f"   ⚠️  Fundamentales: {str(e)[:40]}\n")
-            fundamentales_list.append({
-                'Ticker': ticker,
-                'Nombre': nombre,
-                'Precio': 'Error',
-                'P/E Ratio (Trailing)': 'Error',
-                'P/E Ratio (Forward)': 'Error',
-                'ROE': 'Error',
-                'ROA': 'Error',
-                'P/B Ratio': 'Error',
-                'Dividend Yield': 'Error',
-                'Market Cap': 'Error',
-                'Beta': 'Error',
-                'EPS (Trailing)': 'Error',
-                'Debt to Equity': 'Error',
-                'Current Ratio': 'Error',
-                'Quick Ratio': 'Error',
-            })
+            print(f"   ⚠️  Fundamentales: error\n")
         
-        resultados.append({
-            'Ticker': ticker,
-            'Nombre': nombre,
-            'Status': '✅ OK',
-            'Datos': len(df_precios),
-            'Archivo': filename_precios
-        })
-        
-        time.sleep(0.5)
+        resultados.append({'Ticker': ticker, 'Nombre': nombre, 'Status': '✅ OK', 'Datos': len(df_precios), 'Archivo': filename_precios})
+        time.sleep(0.3)
         
     except Exception as e:
-        print(f"   ❌ Error: {str(e)[:60]}\n")
-        resultados.append({
-            'Ticker': ticker,
-            'Nombre': nombre,
-            'Status': '❌ Error',
-            'Datos': 0,
-            'Archivo': '-'
-        })
+        print(f"   ❌ Error: {str(e)[:50]}\n")
+        resultados.append({'Ticker': ticker, 'Nombre': nombre, 'Status': '❌ Error', 'Datos': 0, 'Archivo': '-'})
 
-# 3. GUARDAR TABLA DE FUNDAMENTALES
+# GUARDAR FUNDAMENTALES
 if fundamentales_list:
     df_fund = pd.DataFrame(fundamentales_list)
     filename_fund = "MERVAL_Fundamentales_Completo.csv"
     filepath_fund = FUND_DIR / filename_fund
     df_fund.to_csv(filepath_fund, index=False)
-    print(f"📊 Fundamentales guardados: {filename_fund}\n")
+    print(f"\n📊 Fundamentales guardados: {filename_fund}\n")
 
-# 4. RESUMEN FINAL
+# RESUMEN
 print("\n" + "="*80)
 print("📊 RESUMEN FINAL")
 print("="*80 + "\n")
 
 if resultados:
     df_resultados = pd.DataFrame(resultados)
-    print(df_resultados.to_string(index=False))
-    
-    exitosas = len([r for r in resultados if r['Status'] == '✅ OK'])
+    exitosas = len([r for r in resultados if '✅' in r['Status']])
     fallidas = len([r for r in resultados if '❌' in r['Status']])
     
-    print(f"\n✅ Exitosas: {exitosas}/{len(ACCIONES_MERVAL)}")
-    print(f"❌ Fallidas: {fallidas}/{len(ACCIONES_MERVAL)}")
+    print(f"✅ Exitosas: {exitosas}/{len(ACCIONES_BA)}")
+    print(f"❌ Fallidas: {fallidas}/{len(ACCIONES_BA)}")
 
-# 5. LISTAR ARCHIVOS
+# LISTAR ARCHIVOS
 print(f"\n{'='*80}")
 print("📁 ARCHIVOS GENERADOS - DATOS")
 print(f"{'='*80}\n")
@@ -235,31 +239,17 @@ if files_data:
         print(f"{i:2d}. {f.name:30} ({size_kb:8.1f} KB)")
     print(f"\n📊 Tamaño total: {total_size:.1f} KB")
 else:
-    print("No se encontraron archivos de datos")
-
-# 6. LISTAR FUNDAMENTALES
-print(f"\n{'='*80}")
-print("📁 ARCHIVOS GENERADOS - FUNDAMENTALES")
-print(f"{'='*80}\n")
-
-files_fund = sorted(list(FUND_DIR.glob("*.csv")))
-if files_fund:
-    for i, f in enumerate(files_fund, 1):
-        size_kb = f.stat().st_size / 1024
-        print(f"{i:2d}. {f.name:30} ({size_kb:8.1f} KB)")
-else:
-    print("No se encontraron archivos de fundamentales")
+    print("No se encontraron archivos")
 
 print(f"\n📁 Carpeta Datos: {DATA_DIR.absolute()}")
 print(f"📁 Carpeta Fundamentales: {FUND_DIR.absolute()}\n")
 
 print("="*80)
-print("✅ DESCARGA + ANÁLISIS COMPLETADO")
+print("✅ DESCARGA COMPLETADA")
 print("="*80)
 print(f"\n💡 INFORMACIÓN:")
 print(f"   Período: 5 años ({(fecha_fin - fecha_inicio).days} días)")
 print(f"   yfinance: {yf.__version__}")
 print(f"   pandas: {pd.__version__}")
-print(f"\n✅ CSVs LIMPIOS - Sin duplicados, sin encabezados extra!")
-print(f"✅ Ratios Fundamentales disponibles para análisis!")
-print(f"✅ {len(ACCIONES_MERVAL)} acciones oficiales IOL!\n")
+print(f"\n✅ {len(ACCIONES_BA)} acciones .BA intentadas")
+print(f"✅ CSVs limpios sin duplicados\n")
