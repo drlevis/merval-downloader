@@ -4,7 +4,7 @@ Script para descargar datos históricos de acciones MERVAL desde Yahoo Finance
 Período: Últimos 6 meses (configurable)
 Funciona: 100% automático, sin JavaScript requerido
 
-NOTA IMPORTANTE: Usa tickers con .BA para acciones de Buenos Aires
+SOLUCIÓN (2025): Usa auto_adjust=False (ver video: youtube.com/watch?v=kVgthlO6T28)
 Instala primero:
   pip install yfinance pandas requests
 """
@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 print("="*80)
-print("📥 DESCARGADOR MERVAL - YAHOO FINANCE")
+print("📥 DESCARGADOR MERVAL - YAHOO FINANCE (CORREGIDO 2025)")
 print("="*80 + "\n")
 
 # Período: últimos 6 meses
@@ -27,20 +27,22 @@ fecha_inicio = fecha_fin - timedelta(days=180)
 print(f"📅 Período: {fecha_inicio.strftime('%Y-%m-%d')} a {fecha_fin.strftime('%Y-%m-%d')}\n")
 
 # Acciones MERVAL disponibles en Yahoo Finance
-# IMPORTANTE: Usar .BA para tickers de Buenos Aires
+# IMPORTANTE: Usar ADR sin sufijo (GGAL, BMA, etc) o .BA para Buenos Aires
 ACCIONES_MERVAL = {
-    "GGAL.BA": "Grupo Galicia (Buenos Aires)",
+    # ADR (mercado USA)
+    "GGAL": "Grupo Galicia (ADR USA)",
+    "BMA": "Banco Macro (ADR USA)",
+    "LOMA": "Loma Negra (ADR USA)",
+    "CEPU": "Central Puerto (ADR USA)",
+    "EDN": "Edenor (ADR USA)",
+    "SUPV": "Grupo Supervielle (ADR USA)",
+    "BBAR": "BBVA Argentina (ADR USA)",
+    "AGRO": "Adecoagro (ADR USA)",
+    
+    # Buenos Aires (si funcionan en tu entorno)
     "YPFD.BA": "YPF (Buenos Aires)",
-    "BMA.BA": "Banco Macro (Buenos Aires)",
-    "LOMA.BA": "Loma Negra (Buenos Aires)",
-    "CEPU.BA": "Central Puerto (Buenos Aires)",
-    "EDN.BA": "Edenor (Buenos Aires)",
-    "SUPV.BA": "Grupo Supervielle (Buenos Aires)",
     "PAMP.BA": "Pampa Energía (Buenos Aires)",
     "ALUA.BA": "Aluar (Buenos Aires)",
-    "BBAR.BA": "BBVA Argentina (Buenos Aires)",
-    "MERC.BA": "Mercado Libre Argentina",
-    "COME.BA": "Comercial del Plata (Buenos Aires)",
 }
 
 # Crear carpeta para descargas
@@ -53,8 +55,8 @@ print("DESCARGANDO ACCIONES")
 print("="*80 + "\n")
 
 resultados = []
-delay_segundos = 2  # Delay entre descargas para evitar rate limiting
-max_retries = 3     # Intentos máximos por acción
+delay_segundos = 1  # Delay entre descargas
+max_retries = 2     # Intentos máximos
 
 for ticker, nombre in ACCIONES_MERVAL.items():
     print(f"⏳ {ticker:15} ({nombre})")
@@ -64,18 +66,19 @@ for ticker, nombre in ACCIONES_MERVAL.items():
     
     while not exito and retry_count < max_retries:
         try:
-            # Descarga datos con yfinance
+            # SOLUCIÓN (2025): auto_adjust=False es crucial para versiones nuevas de yfinance
             df = yf.download(
                 ticker,
                 start=fecha_inicio.strftime('%Y-%m-%d'),
                 end=fecha_fin.strftime('%Y-%m-%d'),
                 progress=False,
-                threads=False
+                threads=False,
+                auto_adjust=False  # ← CLAVE: esto arregla el error de timezone
             )
             
             if len(df) > 0:
                 # Información descargada
-                precio_actual = df['Close'].iloc[-1]
+                precio_actual = df['Adj Close'].iloc[-1] if 'Adj Close' in df.columns else df['Close'].iloc[-1]
                 precio_min = df['Low'].min()
                 precio_max = df['High'].max()
                 variacion_6m = ((precio_actual - df['Close'].iloc[0]) / df['Close'].iloc[0]) * 100
@@ -189,8 +192,6 @@ print(f"\n📁 Carpeta: {DOWNLOAD_DIR.absolute()}\n")
 print("="*80)
 print("✅ DESCARGA COMPLETADA")
 print("="*80)
-print(f"\n💡 NOTA: Si obtuviste muchos 'Sin datos', intenta:")
-print(f"   1. Aumentar delay_segundos a 3-5")
-print(f"   2. Ejecutar el script en otra hora")
-print(f"   3. Verificar tu conexión a Internet")
-print(f"   4. Usar: python descarga_merval_selenium.py (alternativa)\n")
+print(f"\n💡 NOTA IMPORTANTE:")
+print(f"   Este script usa auto_adjust=False (solución 2025)")
+print(f"   Si aún obtiene errores, ver: youtube.com/watch?v=kVgthlO6T28\n")
