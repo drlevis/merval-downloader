@@ -86,13 +86,29 @@ for ticker, nombre in ACCIONES_MERVAL.items():
         df_precios = df_precios.reset_index()
         df_precios.rename(columns={'Date': 'fecha'}, inplace=True)
         
-        # Reordenar columnas de manera lógica
+        # Reordenar columnas de manera lógica (OHLCV estándar)
         df_precios = df_precios[['fecha', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
         
-        # Guardar CSV LIMPIO
+        # ASEGURAR que no hay filas extra con el ticker
+        # Convertir a numérico para eliminar filas con texto
+        df_precios['Open'] = pd.to_numeric(df_precios['Open'], errors='coerce')
+        df_precios['High'] = pd.to_numeric(df_precios['High'], errors='coerce')
+        df_precios['Low'] = pd.to_numeric(df_precios['Low'], errors='coerce')
+        df_precios['Close'] = pd.to_numeric(df_precios['Close'], errors='coerce')
+        df_precios['Adj Close'] = pd.to_numeric(df_precios['Adj Close'], errors='coerce')
+        df_precios['Volume'] = pd.to_numeric(df_precios['Volume'], errors='coerce')
+        
+        # Eliminar NaN (filas corruptas)
+        df_precios = df_precios.dropna()
+        
+        # Convertir fecha a datetime para formatear correctamente
+        df_precios['fecha'] = pd.to_datetime(df_precios['fecha'])
+        df_precios['fecha'] = df_precios['fecha'].dt.strftime('%Y-%m-%d')
+        
+        # Guardar CSV LIMPIO (SIN INDICES, SIN FILAS EXTRA)
         filename_precios = f"{ticker.replace('.BA', '')}_precios_5A.csv"
         filepath_precios = DATA_DIR / filename_precios
-        df_precios.to_csv(filepath_precios, index=False)  # SIN INDEX!
+        df_precios.to_csv(filepath_precios, index=False, float_format='%.8f')
         
         print(f"   ✅ Datos: {len(df_precios)} registros")
         print(f"   💾 Guardado: {filename_precios}")
@@ -226,5 +242,5 @@ print(f"\n💡 INFORMACIÓN:")
 print(f"   Período: 5 años ({(fecha_fin - fecha_inicio).days} días)")
 print(f"   yfinance: {yf.__version__}")
 print(f"   pandas: {pd.__version__}")
-print(f"\n✅ CSVs LIMPIOS - Sin duplicados ni encabezados extra!")
+print(f"\n✅ CSVs LIMPIOS - Sin duplicados, sin encabezados extra!")
 print(f"✅ Ratios Fundamentales disponibles para análisis!\n")
