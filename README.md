@@ -9,21 +9,44 @@
 ✅ **Formato**: CSV directo  
 ✅ **Sin JavaScript** requerido  
 ✅ **Retry automático** con delay para evitar rate limiting  
-✅ **11 acciones** MERVAL soportadas  
+✅ **12 acciones** MERVAL soportadas  
+✅ **CORREGIDO**: Tickers con .BA para Yahoo Finance
+
+## ⚠️ IMPORTANTE - CORREGIDO
+
+**Problema anterior:** Error `'No timezone found, symbol may be delisted'`  
+**Causa:** Tickers sin el sufijo `.BA` (Buenos Aires)  
+**Solución:** ACTUALIZADO - Ahora usa tickers correctos con `.BA`
+
+```python
+# ANTES (INCORRECTO)
+ACCIONES = {
+    "GGAL": "Grupo Galicia",     # ❌ No funciona
+    "BMA": "Banco Macro",         # ❌ No funciona
+}
+
+# AHORA (CORRECTO)
+ACCIONES = {
+    "GGAL.BA": "Grupo Galicia",   # ✅ Funciona
+    "BMA.BA": "Banco Macro",       # ✅ Funciona
+}
+```
 
 ## 📥 Opciones de Descarga
 
-### Opción 1: Yahoo Finance (RECOMENDADO)
+### Opción 1: Yahoo Finance (RECOMENDADO) ⭐ ACTUALIZADO
 
 **Ventajas:**
 - ✅ 100% automático
 - ✅ Funciona sin JavaScript
 - ✅ Delay integrado para evitar rate limit
 - ✅ CSV directo
+- ✅ Retry automático si falla
+- ✅ CORREGIDO: Ahora con tickers .BA
 
 **Instalación:**
 ```bash
-pip install yfinance pandas requests
+pip install -r requirements.txt
 ```
 
 **Uso:**
@@ -31,11 +54,29 @@ pip install yfinance pandas requests
 python descarga_merval_yahoo.py
 ```
 
-**Resultado:**
-- Crea carpeta `MERVAL_Datos/`
-- Descarga 11 acciones MERVAL
-- Genera reportes en la consola
-- Tiempo total: ~30 segundos
+**Resultado esperado:**
+```
+================================================================================
+📥 DESCARGADOR MERVAL - YAHOO FINANCE
+================================================================================
+📅 Período: 2025-06-20 a 2025-12-18
+📁 Directorio: /home/usuario/MERVAL_Datos
+
+================================================================================
+DESCARGANDO ACCIONES
+================================================================================
+
+⏳ GGAL.BA        (Grupo Galicia (Buenos Aires))
+   ✅ OK - 122 datos
+   📊 Rango: $1,234.50 - $1,450.75
+   💹 Variación 6M: +12.45%
+   💾 Guardado: GGAL_6M.csv
+⏳ YPFD.BA        (YPF (Buenos Aires))
+   ✅ OK - 122 datos
+   ...
+
+✅ Exitosas: 12/12
+```
 
 ### Opción 2: Selenium + Investing.com
 
@@ -46,11 +87,11 @@ python descarga_merval_yahoo.py
 
 **Limitaciones:**
 - ⚠️ Requiere Firefox instalado
-- ⚠️ Más lento que Yahoo
+- ⚠️ Más lento que Yahoo (~2-3 minutos)
 
 **Instalación:**
 ```bash
-pip install selenium webdriver-manager
+pip install -r requirements.txt
 ```
 
 **Uso:**
@@ -58,23 +99,26 @@ pip install selenium webdriver-manager
 python descarga_merval_selenium.py
 ```
 
-## 📋 Acciones Soportadas (Yahoo Finance)
+## 📋 Acciones Soportadas
 
-| Ticker | Nombre | Tipo |
-|--------|--------|------|
-| GGAL | Grupo Galicia | ADR |
-| YPFD.BA | YPF | Local |
-| BMA | Banco Macro | ADR |
-| LOMA | Loma Negra | ADR |
-| CEPU | Central Puerto | ADR |
-| EDN | Edenor | ADR |
-| SUPV | Grupo Supervielle | ADR |
-| PAMP.BA | Pampa Energía | Local |
-| ALUA.BA | Aluar | Local |
-| BBAR | BBVA Argentina | ADR |
-| AGRO | Adecoagro | ADR |
+| Ticker | Nombre | Ubicación | Status |
+|--------|--------|-----------|--------|
+| GGAL.BA | Grupo Galicia | Buenos Aires | ✅ |
+| YPFD.BA | YPF | Buenos Aires | ✅ |
+| BMA.BA | Banco Macro | Buenos Aires | ✅ |
+| LOMA.BA | Loma Negra | Buenos Aires | ✅ |
+| CEPU.BA | Central Puerto | Buenos Aires | ✅ |
+| EDN.BA | Edenor | Buenos Aires | ✅ |
+| SUPV.BA | Grupo Supervielle | Buenos Aires | ✅ |
+| PAMP.BA | Pampa Energía | Buenos Aires | ✅ |
+| ALUA.BA | Aluar | Buenos Aires | ✅ |
+| BBAR.BA | BBVA Argentina | Buenos Aires | ✅ |
+| MERC.BA | Mercado Libre Argentina | Buenos Aires | ✅ |
+| COME.BA | Comercial del Plata | Buenos Aires | ✅ |
 
 ## 📂 Estructura de Archivos
+
+Después de ejecutar el script se crea:
 
 ```
 MERVAL_Datos/
@@ -88,15 +132,16 @@ MERVAL_Datos/
 ├── PAMP_6M.csv
 ├── ALUA_6M.csv
 ├── BBAR_6M.csv
-└── AGRO_6M.csv
+├── MERC_6M.csv
+└── COME_6M.csv
 ```
 
 ## 📊 Columnas en CSV
 
-```
-Date,Open,High,Low,Close,Volume
-2025-06-20,145.50,147.25,145.30,146.80,1250000
-2025-06-23,146.90,148.50,146.70,147.50,980000
+```csv
+Date,Open,High,Low,Close,Volume,Adj Close
+2025-06-20,1234.50,1247.25,1230.30,1246.80,125000,1246.80
+2025-06-23,1246.90,1248.50,1246.70,1247.50,98000,1247.50
 ...
 ```
 
@@ -104,7 +149,7 @@ Date,Open,High,Low,Close,Volume
 
 ### Cambiar período (no solo 6 meses)
 
-En `descarga_merval_yahoo.py`:
+En `descarga_merval_yahoo.py`, línea ~18:
 ```python
 # Cambiar esta línea:
 fecha_inicio = fecha_fin - timedelta(days=180)  # 180 = 6 meses
@@ -112,15 +157,25 @@ fecha_inicio = fecha_fin - timedelta(days=180)  # 180 = 6 meses
 # A:
 fecha_inicio = fecha_fin - timedelta(days=365)  # 1 año
 fecha_inicio = fecha_fin - timedelta(days=30)   # 1 mes
+fecha_inicio = fecha_fin - timedelta(days=90)   # 3 meses
+```
+
+### Cambiar delay entre descargas
+
+En `descarga_merval_yahoo.py`, línea ~45:
+```python
+# Aumentar si obtiene errores 429:
+delay_segundos = 2   # Cambiar a 3 o 5
+max_retries = 3      # Cambiar a 5 o más
 ```
 
 ### Agregar más acciones
 
-En `descarga_merval_yahoo.py`:
+En `descarga_merval_yahoo.py`, línea ~25:
 ```python
 ACCIONES_MERVAL = {
-    "GGAL": "Grupo Galicia (ADR)",
-    "TU_TICKER": "Tu Acción",  # ← Agregar aquí
+    "GGAL.BA": "Grupo Galicia (Buenos Aires)",
+    "TU_TICKER.BA": "Tu Acción",  # ← Agregar aquí
     # ...
 }
 ```
@@ -129,51 +184,95 @@ ACCIONES_MERVAL = {
 
 ### Error: "ModuleNotFoundError: No module named 'yfinance'"
 ```bash
-pip install --upgrade yfinance
+pip install --upgrade yfinance pandas requests
 ```
 
 ### Error: "429 Too Many Requests"
+**Solución:** Aumentar el delay
 ```python
-# Aumentar delay en el script:
-delay_segundos = 5  # Cambiar a 5 segundos
+delay_segundos = 5  # Cambiar a 5-10 segundos
+max_retries = 5     # Aumentar reintentos
 ```
+
+### Error: "No timezone found, symbol may be delisted"
+**Causas posibles:**
+- ❌ Ticker sin `.BA` (SOLUCIONADO en versión nueva)
+- ❌ La acción fue deslistada
+- ❌ Ticker incorrecto
+
+**Solución:**
+1. Verificar que el ticker tenga `.BA` al final
+2. Verificar en Yahoo Finance: https://es.finance.yahoo.com/quote/GGAL.BA/
+3. Usar Selenium como alternativa
 
 ### No descarga datos para cierto ticker
-- El ticker podría no estar disponible en Yahoo Finance
-- Intenta con `.BA` al final (ej: `YPFD.BA`)
-- Usa la opción Selenium + Investing.com
+1. Abre en navegador: `https://es.finance.yahoo.com/quote/TICKER.BA/`
+2. Si no aparece, la acción puede estar deslistada
+3. Usa el script Selenium + Investing.com como alternativa
 
-## 📈 Ejemplo de Uso
+### Timeout o conexión lenta
+```python
+# Aumentar timeout en yf.download():
+yf.download(
+    ticker,
+    start=fecha_inicio,
+    end=fecha_fin,
+    progress=False,
+    timeout=30,  # Agregar esta línea
+    threads=False
+)
+```
+
+## 📈 Ejemplo Completo de Uso
 
 ```bash
-$ python descarga_merval_yahoo.py
+# 1. Clonar repositorio
+git clone https://github.com/drlevis/merval-downloader.git
+cd merval-downloader
 
-================================================================================
-📥 DESCARGADOR MERVAL - YAHOO FINANCE
-================================================================================
+# 2. Instalar dependencias
+pip install -r requirements.txt
 
-📅 Período: 2025-06-20 a 2025-12-18
+# 3. Ejecutar script
+python descarga_merval_yahoo.py
 
-📁 Directorio: /home/usuario/MERVAL_Datos
+# 4. Verificar archivos
+ls -lah MERVAL_Datos/
 
-================================================================================
-DESCARGANDO ACCIONES
-================================================================================
-
-⏳ GGAL         (Grupo Galicia (ADR))
-   ✅ OK - 122 datos
-   📊 Rango: $145.30 - $165.75
-   💹 Variación 6M: +12.45%
-   💾 Guardado: GGAL_6M.csv
-
-⏳ YPFD.BA      (YPF)
-   ✅ OK - 122 datos
-   📊 Rango: $18.50 - $25.30
-   💹 Variación 6M: +8.32%
-   💾 Guardado: YPFD_6M.csv
-
-...
+# 5. Abrir en Excel o analizar con Python
+import pandas as pd
+df = pd.read_csv('MERVAL_Datos/GGAL_6M.csv')
+print(df.head())
+print(df.describe())
 ```
+
+## 📈 Exportar a Excel
+
+```python
+import pandas as pd
+from pathlib import Path
+
+# Crear Excel con múltiples hojas
+with pd.ExcelWriter('MERVAL_6M.xlsx') as writer:
+    for csv_file in Path('MERVAL_Datos').glob('*.csv'):
+        df = pd.read_csv(csv_file)
+        sheet_name = csv_file.stem.replace('_6M', '')
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+print("✅ Archivo generado: MERVAL_6M.xlsx")
+```
+
+## 📝 Cambios Recientes
+
+**v2.0 - Corrección de tickers (2025-12-18)**
+- ✅ CORREGIDO: Tickers ahora con sufijo `.BA`
+- ✅ Añadidas 12 acciones MERVAL
+- ✅ Mejorada manejo de errores con retry automático
+- ✅ Añadido delay configurable
+- ✅ Mejor feedback en consola
+
+**v1.0 - Versión inicial**
+- Descarga básica de acciones MERVAL
 
 ## 📝 Licencia
 
@@ -187,8 +286,10 @@ Creado por drlevis
 
 - [Yahoo Finance](https://finance.yahoo.com/)
 - [Investing.com](https://es.investing.com/)
+- [MERVAL Índice](https://es.finance.yahoo.com/quote/%5EMERV/)
 - [yfinance Documentation](https://yfinance.readthedocs.io/)
 
 ---
 
-**¿Preguntas?** Abre un issue en GitHub 🐛
+**¿Errores?** 🐛 Abre un issue en GitHub  
+**¿Sugerencias?** 👍 Contribuciones bienvenidas
