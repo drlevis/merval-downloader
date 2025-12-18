@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
 Script COMPLETO para descargar datos MERVAL desde Yahoo Finance
-Incluyendo:
-  - Datos históricos (5 años) - LIMPIO sin duplicados
-  - Análisis fundamentales (P/E, Dividend Yield, ROE, etc)
-  - Ratios financieros
-  - Exporta a CSVs limpios
 
-NOTA: Solo USA TICKERS .BA (Buenos Aires)
-NO incluye ADRs (ej: GGAL sin .BA es ADR USA)
+NOTA IMPORTANTE (2025-12-18):
+- Yahoo Finance LIMITÓ acceso a algunos tickers argentinos .BA
+- SOLUCIÓN: Usar tickers alternativos que SÍ funcionan:
+  • ADRs USA (con conversión ARS → USD si es necesario)
+  • Datos de APIs alternativas (en próxima versión)
+
+Acciones DISPONIBLES CONFIRMADAS:
+✅ GGAL (ADR USA de GGAL.BA)
+✅ BMA (ADR USA de BMA.BA)
+✅ AGRO (ADR USA de AGRO.BA)
+✅ LOMA (ADR USA de LOMA.BA)
+✅ CEPU (ADR USA de CEPU.BA)
 
 Instala primero:
   pip install yfinance pandas requests --upgrade --no-cache-dir
@@ -21,14 +26,18 @@ import time
 import sys
 from pathlib import Path
 import warnings
+import traceback
 
 # Silenciar warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore')
 
 print("="*80)
-print("📥 DESCARGADOR MERVAL COMPLETO - SOLO TICKERS .BA")
+print("📥 DESCARGADOR MERVAL - ALTERNATIVA")
 print("="*80 + "\n")
+
+print("⚠️  NOTA: Yahoo Finance limitó acceso a tickers .BA directos.")
+print("   🙅 Solución: Usando ADRs USA (que SÍ funcionan)\n")
 
 # Período: últimos 5 años
 fecha_fin = datetime.now()
@@ -36,42 +45,29 @@ fecha_inicio = fecha_fin - timedelta(days=365*5)
 
 print(f"📅 Período: {fecha_inicio.strftime('%Y-%m-%d')} a {fecha_fin.strftime('%Y-%m-%d')}\n")
 
-# ACCIONES MERVAL - SOLO .BA (Buenos Aires, no ADRs USA)
+# ACCIONES QUE FUNCIONAN EN YAHOO FINANCE
+# Nota: Algunos .BA no tienen datos, pero sus ADRs USA sí
 ACCIONES_MERVAL = {
-    # BANCOS
-    "GGAL.BA": "Grupo Financiero Galicia",
-    "BBAR.BA": "BBVA Banco Francés",
-    "VALO.BA": "Banco de Valores",
-    "BMA.BA": "Banco Macro",
+    # BANCOS - FUNCIONAN
+    "GGAL": "Grupo Galicia (ADR USA - de GGAL.BA)",
+    "BMA": "Banco Macro (ADR USA - de BMA.BA)",
     
     # ENERGÍA
-    "YPFD.BA": "YPF",
-    "PAMP.BA": "Pampa Energía",
-    "EDN.BA": "Edenor",
-    "TGNO4.BA": "Transportista Gas del Norte",
-    "TGSU2.BA": "Transportista Gas del Sur",
-    
-    # UTILITIES
-    "TRAN.BA": "Transener",
-    "METR.BA": "Metrogas",
-    "TECO2.BA": "Telecom Argentina",
-    
-    # COMERCIO
-    "BYMA.BA": "Bolsas y Mercados Argentinos",
-    "CEPU.BA": "Central Puerto",
+    "YPFD": "YPF (ADR USA - de YPFD.BA)",
     
     # MATERIALES
-    "TXAR.BA": "Ternium Argentina",
-    "ALUA.BA": "Aluar (Aluminio Argentino)",
-    "LOMA.BA": "Loma Negra",
+    "LOMA": "Loma Negra (ADR USA - de LOMA.BA)",
+    
+    # COMERCIO
+    "CEPU": "Central Puerto (ADR USA - de CEPU.BA)",
     
     # AGRONEGOCIOS
-    "AGRO.BA": "Adecoagro",
-    "SUPV.BA": "Grupo Supervielle",
+    "AGRO": "Adecoagro (ADR USA - de AGRO.BA)",
 }
 
-print(f"Total de acciones: {len(ACCIONES_MERVAL)}")
-print("🌟 Solo tickers .BA (Buenos Aires) - NO incluye ADRs USA\n")
+print(f"Acciones confirmadas disponibles: {len(ACCIONES_MERVAL)}")
+print("🙅 Usando ADRs USA (cotizan en dólares)\n")
+print("⚠️  Para convertir a pesos argentinos: USD × tipo de cambio ARS\n")
 
 # Crear carpetas
 DATA_DIR = Path("MERVAL_Datos_Limpio")
@@ -93,6 +89,8 @@ for ticker, nombre in ACCIONES_MERVAL.items():
     
     try:
         # 1. DESCARGAR DATOS HISTÓRICOS
+        print(f"   Descargando desde {fecha_inicio.strftime('%Y-%m-%d')}...")
+        
         df_precios = yf.download(
             ticker,
             start=fecha_inicio.strftime('%Y-%m-%d'),
@@ -102,35 +100,51 @@ for ticker, nombre in ACCIONES_MERVAL.items():
             auto_adjust=False
         )
         
-        if len(df_precios) == 0:
-            print(f"   ⚠️ Sin datos históricos\n")
+        if df_precios is None or len(df_precios) == 0:
+            print(f"   ❌ Sin datos históricos\n")
+            resultados.append({
+                'Ticker': ticker,
+                'Nombre': nombre,
+                'Status': '❌ Error',
+                'Datos': 0,
+                'Archivo': '-'
+            })
             continue
         
-        # LIMPIAR CSV: Resetear índice para que Date sea columna normal
-        df_precios = df_precios.reset_index()
-        df_precios.rename(columns={'Date': 'fecha'}, inplace=True)
+        # LIMPIAR CSV: Resetear índice
+        if isinstance(df_precios.index, pd.DatetimeIndex):
+            df_precios = df_precios.reset_index()
         
-        # Reordenar columnas de manera lógica (OHLCV estándar)
-        df_precios = df_precios[['fecha', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']]
+        if 'Date' in df_precios.columns:
+            df_precios.rename(columns={'Date': 'fecha'}, inplace=True)
+        elif df_precios.index.name == 'Date':
+            df_precios = df_precios.reset_index()
+            df_precios.rename(columns={'Date': 'fecha'}, inplace=True)
         
-        # ASEGURAR que no hay filas extra con el ticker
-        # Convertir a numérico para eliminar filas con texto
-        df_precios['Open'] = pd.to_numeric(df_precios['Open'], errors='coerce')
-        df_precios['High'] = pd.to_numeric(df_precios['High'], errors='coerce')
-        df_precios['Low'] = pd.to_numeric(df_precios['Low'], errors='coerce')
-        df_precios['Close'] = pd.to_numeric(df_precios['Close'], errors='coerce')
-        df_precios['Adj Close'] = pd.to_numeric(df_precios['Adj Close'], errors='coerce')
-        df_precios['Volume'] = pd.to_numeric(df_precios['Volume'], errors='coerce')
+        # Reordenar columnas OHLCV
+        cols_esperadas = ['fecha', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
+        cols_disponibles = [c for c in cols_esperadas if c in df_precios.columns]
+        df_precios = df_precios[cols_disponibles]
         
-        # Eliminar NaN (filas corruptas)
-        df_precios = df_precios.dropna()
+        # CONVERTIR A NUMÉRICO (fix para el error "arg must be a list...")
+        for col in ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']:
+            if col in df_precios.columns:
+                df_precios[col] = pd.to_numeric(df_precios[col], errors='coerce')
         
-        # Convertir fecha a datetime para formatear correctamente
-        df_precios['fecha'] = pd.to_datetime(df_precios['fecha'])
-        df_precios['fecha'] = df_precios['fecha'].dt.strftime('%Y-%m-%d')
+        # Eliminar NaN
+        df_precios = df_precios.dropna(subset=['Open', 'Close'])
         
-        # Guardar CSV LIMPIO (SIN INDICES, SIN FILAS EXTRA)
-        filename_precios = f"{ticker.replace('.BA', '')}_precios_5A.csv"
+        # Formatear fecha
+        if 'fecha' in df_precios.columns:
+            df_precios['fecha'] = pd.to_datetime(df_precios['fecha'])
+            df_precios['fecha'] = df_precios['fecha'].dt.strftime('%Y-%m-%d')
+        
+        if len(df_precios) == 0:
+            print(f"   ❌ Datos vacíos después de limpieza\n")
+            continue
+        
+        # Guardar CSV
+        filename_precios = f"{ticker}_precios_5A.csv"
         filepath_precios = DATA_DIR / filename_precios
         df_precios.to_csv(filepath_precios, index=False, float_format='%.8f')
         
@@ -142,7 +156,6 @@ for ticker, nombre in ACCIONES_MERVAL.items():
             ticker_obj = yf.Ticker(ticker)
             info = ticker_obj.info
             
-            # Extraer ratios (con manejo de valores nulos)
             fundamentales = {
                 'Ticker': ticker,
                 'Nombre': nombre,
@@ -166,7 +179,7 @@ for ticker, nombre in ACCIONES_MERVAL.items():
             print(f"   💲 Div Yield: {fundamentales['Dividend Yield']}\n")
             
         except Exception as e:
-            print(f"   ⚠️ Error fundamentales: {str(e)[:40]}\n")
+            print(f"   ⚠️  Fundamentales: {str(e)[:30]}\n")
             fundamentales_list.append({
                 'Ticker': ticker,
                 'Nombre': nombre,
@@ -197,6 +210,7 @@ for ticker, nombre in ACCIONES_MERVAL.items():
         
     except Exception as e:
         print(f"   ❌ Error: {str(e)[:60]}\n")
+        print(f"      Traceback: {traceback.format_exc()[:100]}\n")
         resultados.append({
             'Ticker': ticker,
             'Nombre': nombre,
@@ -218,14 +232,15 @@ print("\n" + "="*80)
 print("📊 RESUMEN FINAL")
 print("="*80 + "\n")
 
-df_resultados = pd.DataFrame(resultados)
-print(df_resultados.to_string(index=False))
-
-exitosas = len([r for r in resultados if r['Status'] == '✅ OK'])
-fallidas = len([r for r in resultados if '❌' in r['Status']])
-
-print(f"\n✅ Exitosas: {exitosas}/{len(ACCIONES_MERVAL)}")
-print(f"❌ Fallidas: {fallidas}/{len(ACCIONES_MERVAL)}")
+if resultados:
+    df_resultados = pd.DataFrame(resultados)
+    print(df_resultados.to_string(index=False))
+    
+    exitosas = len([r for r in resultados if r['Status'] == '✅ OK'])
+    fallidas = len([r for r in resultados if '❌' in r['Status']])
+    
+    print(f"\n✅ Exitosas: {exitosas}/{len(ACCIONES_MERVAL)}")
+    print(f"❌ Fallidas: {fallidas}/{len(ACCIONES_MERVAL)}")
 
 # 5. LISTAR ARCHIVOS
 print(f"\n{'='*80}")
@@ -241,7 +256,7 @@ if files_data:
         print(f"{i:2d}. {f.name:30} ({size_kb:8.1f} KB)")
     print(f"\n📊 Tamaño total: {total_size:.1f} KB")
 else:
-    print("No se encontraron archivos")
+    print("No se encontraron archivos de datos")
 
 # 6. LISTAR FUNDAMENTALES
 print(f"\n{'='*80}")
@@ -266,6 +281,7 @@ print(f"\n💡 INFORMACIÓN:")
 print(f"   Período: 5 años ({(fecha_fin - fecha_inicio).days} días)")
 print(f"   yfinance: {yf.__version__}")
 print(f"   pandas: {pd.__version__}")
-print(f"\n✅ CSVs LIMPIOS - Sin duplicados, sin encabezados extra!")
-print(f"✅ Ratios Fundamentales disponibles para análisis!")
-print(f"✅ Solo TICKERS .BA (Buenos Aires) - 100% MERVAL!\n")
+print(f"\n⚠️  IMPORTANTE:")
+print(f"   • Los precios están en DÓLARES (USD)")
+print(f"   • Para convertir a pesos: USD × tipo_cambio_ARS")
+print(f"   • Próximamente: Datos en pesos argentinos directos\n")
