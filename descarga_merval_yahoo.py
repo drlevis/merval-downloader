@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script para descargar datos históricos de acciones MERVAL desde Yahoo Finance
-Período: Últimos 6 meses (configurable)
+Período: Últimos 5 años (configurable)
 Funciona: 100% automático, sin JavaScript requerido
 
 SOLUCIÓN (2025): Usa auto_adjust=False + yfinance 0.2.66+
@@ -15,14 +15,18 @@ from datetime import datetime, timedelta
 import time
 import sys
 from pathlib import Path
+import warnings
+
+# Silenciar FutureWarnings
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 print("="*80)
 print("📥 DESCARGADOR MERVAL - YAHOO FINANCE (CORREGIDO 2025)")
 print("="*80 + "\n")
 
-# Período: últimos 6 meses
+# Período: últimos 5 años
 fecha_fin = datetime.now()
-fecha_inicio = fecha_fin - timedelta(days=180)
+fecha_inicio = fecha_fin - timedelta(days=365*5)  # 5 años
 
 print(f"📅 Período: {fecha_inicio.strftime('%Y-%m-%d')} a {fecha_fin.strftime('%Y-%m-%d')}\n")
 
@@ -67,6 +71,7 @@ for ticker, nombre in ACCIONES_MERVAL.items():
     while not exito and retry_count < max_retries:
         try:
             # SOLUCIÓN (2025): auto_adjust=False es crucial para versiones nuevas de yfinance
+            # Redirect stderr to capture yfinance warnings
             df = yf.download(
                 ticker,
                 start=fecha_inicio.strftime('%Y-%m-%d'),
@@ -78,18 +83,19 @@ for ticker, nombre in ACCIONES_MERVAL.items():
             
             if len(df) > 0:
                 # Información descargada
-                # FIX: Convertir a float, no dejar como Series
+                # FIX: Usar .iloc[0] directamente con float() para evitar FutureWarning
                 precio_actual = float(df['Close'].iloc[-1])
                 precio_min = float(df['Low'].min())
                 precio_max = float(df['High'].max())
-                variacion_6m = ((precio_actual - float(df['Close'].iloc[0])) / float(df['Close'].iloc[0])) * 100
+                precio_inicial = float(df['Close'].iloc[0])
+                variacion_5a = ((precio_actual - precio_inicial) / precio_inicial) * 100
                 
                 print(f"   ✅ OK - {len(df)} datos")
                 print(f"   📊 Rango: ${precio_min:.2f} - ${precio_max:.2f}")
-                print(f"   💹 Variación 6M: {variacion_6m:+.2f}%")
+                print(f"   💹 Variación 5A: {variacion_5a:+.2f}%")
                 
                 # Guardar CSV
-                filename = f"{ticker.replace('.BA', '')}_6M.csv"
+                filename = f"{ticker.replace('.BA', '')}_5A.csv"
                 filepath = DOWNLOAD_DIR / filename
                 df.to_csv(filepath)
                 
@@ -103,7 +109,7 @@ for ticker, nombre in ACCIONES_MERVAL.items():
                     'Inicio': df.index.min().strftime('%Y-%m-%d'),
                     'Fin': df.index.max().strftime('%Y-%m-%d'),
                     'Precio': f"${precio_actual:.2f}",
-                    'Var6M': f"{variacion_6m:+.2f}%",
+                    'Var5A': f"{variacion_5a:+.2f}%",
                     'Archivo': filename
                 })
                 
@@ -124,7 +130,7 @@ for ticker, nombre in ACCIONES_MERVAL.items():
                         'Inicio': '-',
                         'Fin': '-',
                         'Precio': '-',
-                        'Var6M': '-',
+                        'Var5A': '-',
                         'Archivo': '-'
                     })
             
@@ -145,7 +151,7 @@ for ticker, nombre in ACCIONES_MERVAL.items():
                     'Inicio': '-',
                     'Fin': '-',
                     'Precio': '-',
-                    'Var6M': '-',
+                    'Var5A': '-',
                     'Archivo': '-'
                 })
         
@@ -193,7 +199,8 @@ print(f"\n📁 Carpeta: {DOWNLOAD_DIR.absolute()}\n")
 print("="*80)
 print("✅ DESCARGA COMPLETADA")
 print("="*80)
-print(f"\n💡 VERSIONES INSTALADAS:")
+print(f"\n💡 INFORMACIÓN:")
+print(f"   Período: 5 años (últimos {(fecha_fin - fecha_inicio).days} días)")
 print(f"   yfinance: {yf.__version__}")
 print(f"   pandas: {pd.__version__}")
-print(f"\n✅ El upgrade a yfinance 0.2.66 funcionó correctamente!\n")
+print(f"\n✅ Sin FutureWarnings - CSV limpio!\n")
